@@ -82,15 +82,13 @@ class PolicyAgent:
         # Evidence IDs construction
         evidence_ids = []
         evidence_ids.append(f"order:{order_id}")
-        for i_id in item_ids[:5]:
+        for i_id in item_ids[:3]:
             evidence_ids.append(f"item:{i_id}")
-        for p_id in payment_ids[:5]:
+        for p_id in payment_ids[:3]:
             evidence_ids.append(f"payment:{p_id}")
-        for s_id in seller_ids[:5]:
+        for s_id in seller_ids[:2]:
             evidence_ids.append(f"seller:{s_id}")
         evidence_ids.append(f"policy:{root_cause}")
-
-        # Limit evidence_ids to max 10
         evidence_ids = evidence_ids[:10]
 
         output = {

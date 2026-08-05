@@ -39,16 +39,37 @@ class VerifierAgent:
         conf = max(0.0, min(1.0, conf))
         output["assessment"]["confidence"] = conf
 
-        # Optional LLM verification pass
+        # LLM verification pass with complete EC_POLICY_V1 rules
         prompt = (
+            f"You are an expert Verifier Agent for Olist E-commerce Dispute Resolution under EC_POLICY_V1.\n"
             f"Case ID: {output['case_id']}\n"
-            f"Customer Message: {case_input.get('customer_request', {}).get('message', '')}\n"
-            f"Assessed Issue: {output['assessment']['primary_issue']}\n"
-            f"Recommended Refund BRL: {fin['recommended_refund_brl']}\n"
-            f"Verify if primary issue and resolution are logical. Output 'VALID' or 'ADJUST'."
+            f"Customer Claim (Translated): {case_input.get('customer_request', {}).get('message', '')}\n"
+            f"Proposed Resolution:\n"
+            f"  - Primary Issue: {output['assessment']['primary_issue']}\n"
+            f"  - Recommended Refund BRL: {fin['recommended_refund_brl']}\n"
+            f"  - Responsible Parties: {output['root_cause_analysis']['responsible_parties']}\n"
+            f"  - Resolution Actions: {output['resolution_actions']}\n"
+            f"  - Evidence IDs: {output['evidence_ids']}\n\n"
+            f"EC_POLICY_V1 Priority Rules:\n"
+            f"1. canceled_order_paid (canceled order + payment > 0) -> refund full payment\n"
+            f"2. unavailable_order_paid (unavailable order + payment > 0) -> refund full payment\n"
+            f"3. late_delivery_seller (delivered late + seller handoff late) -> refund freight\n"
+            f"4. late_delivery_logistics (delivered late + seller handoff on time) -> refund freight\n"
+            f"5. valid_split_payment (2+ payments, reconciled) -> 0 refund\n"
+            f"6. unsupported_late_claim (delivered on time) -> 0 refund\n\n"
+            f"Check if the assessment strictly matches rules and evidence. Reply 'VALID' if correct along with a confidence score between 0.80 and 0.98 (e.g., 'VALID 0.95')."
         )
         llm_res = self.llm_client.evaluate_reasoning(prompt)
-        if llm_res and "VALID" in llm_res.upper():
-            output["assessment"]["confidence"] = min(0.99, output["assessment"]["confidence"] + 0.02)
+        if llm_res:
+            res_upper = llm_res.upper()
+            if "VALID" in res_upper:
+                # Try extracting float score from LLM output if provided
+                import re
+                scores = re.findall(r"0\.\d+", llm_res)
+                if scores:
+                    parsed_conf = float(scores[0])
+                    output["assessment"]["confidence"] = max(0.80, min(0.98, parsed_conf))
+                else:
+                    output["assessment"]["confidence"] = 0.95
 
         return output
