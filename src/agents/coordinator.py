@@ -32,8 +32,24 @@ class CoordinatorAgent:
     def process_case(self, case_input: Dict[str, Any]) -> Dict[str, Any]:
         case_id = case_input.get("case_id")
         claimed_order_id = case_input.get("customer_request", {}).get("claimed_order_id")
+        original_message = case_input.get("customer_request", {}).get("message", "")
 
         self._log_trace(case_id, self.agent_name, "receive_case", {"claimed_order_id": claimed_order_id})
+
+        # Translate customer request message to English before processing
+        translated_message = original_message
+        if original_message:
+            translated_message = self.verifier_agent.llm_client.translate_to_english(original_message)
+            self._log_trace(case_id, self.agent_name, "translate_request", {
+                "model": self.verifier_agent.llm_client.translating_model,
+                "original": original_message,
+                "translated": translated_message
+            })
+
+        processed_case_input = dict(case_input)
+        if "customer_request" in processed_case_input:
+            processed_case_input["customer_request"] = dict(processed_case_input["customer_request"])
+            processed_case_input["customer_request"]["message"] = translated_message
 
         # 1. Handoff to OrderSellerAgent
         order_info = self.order_seller_agent.analyze(claimed_order_id)
@@ -71,7 +87,7 @@ class CoordinatorAgent:
         })
 
         # 5. Handoff to VerifierAgent
-        final_output = self.verifier_agent.verify_and_refine(policy_output, case_input)
+        final_output = self.verifier_agent.verify_and_refine(policy_output, processed_case_input)
         self._log_trace(case_id, self.verifier_agent.agent_name, "verify_and_refine", {
             "case_status": final_output["assessment"]["case_status"],
             "confidence": final_output["assessment"]["confidence"]
