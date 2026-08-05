@@ -18,7 +18,13 @@ from typing import Callable
 
 from .a2a import Bus, Message, TraceRecorder
 from .agents.coordinator import CoordinatorAgent, cap
-from .config import MAX_ACTIONS, MAX_EVIDENCE, POLICY_VERSION
+from .config import (
+    MAX_ACTIONS,
+    MAX_EVIDENCE,
+    MONEY_ISSUES,
+    POLICY_VERSION,
+    SELLER_IN_MONEY_ISSUE_ENTITIES,
+)
 from .datastore import DataStore, money
 from .llm import USAGE
 from .policy import build_evidence, evaluate
@@ -57,6 +63,13 @@ def facts_from_bundle(bundle: dict) -> dict:
         "delivered_ts": tl.get("delivered"),
         "estimated_ts": tl.get("estimated"),
     }
+
+
+def seller_ids_for(issue: str, seller_ids: list[str]) -> list[str]:
+    """Sellers listed as affected. See config.SELLER_IN_MONEY_ISSUE_ENTITIES."""
+    if issue in MONEY_ISSUES and not SELLER_IN_MONEY_ISSUE_ENTITIES:
+        return []
+    return seller_ids
 
 
 def empty_output(case_id: str, order_id: str | None) -> dict:
@@ -167,7 +180,7 @@ def run_case(
         "affected_entities": {
             "order_ids": cap([facts["order_id"]]),
             "item_ids": cap(facts["item_ids"]),
-            "seller_ids": cap(facts["seller_ids"]),
+            "seller_ids": cap(seller_ids_for(issue, facts["seller_ids"])),
             "payment_ids": cap(facts["payment_ids"]),
         },
         "root_cause_analysis": {

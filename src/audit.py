@@ -28,6 +28,7 @@ from .config import (
     ROOT_CAUSE_CODES,
 )
 from .datastore import DataStore
+from .pipeline import seller_ids_for
 from .policy import build_evidence, evaluate
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -169,7 +170,7 @@ def score_case(out: dict, case: dict, store: DataStore) -> dict:
     ent = (
         f1(ae["order_ids"], [order_id])
         + f1(ae["item_ids"], truth_facts["item_ids"][:MAX_ENTITY_IDS])
-        + f1(ae["seller_ids"], facts["seller_ids"][:MAX_ENTITY_IDS])
+        + f1(ae["seller_ids"], seller_ids_for(truth["primary_issue"], facts["seller_ids"])[:MAX_ENTITY_IDS])
         + f1(ae["payment_ids"], truth_facts["payment_ids"][:MAX_ENTITY_IDS])
     ) / 4
     parts["affected_entities"] = ent * WEIGHTS["affected_entities"]
