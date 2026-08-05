@@ -39,6 +39,7 @@ def facts_from_bundle(bundle: dict) -> dict:
         "item_ids": os_["item_ids"],
         "seller_ids": os_["seller_ids"],
         "late_seller_ids": os_["late_handoff_seller_ids"],
+        "late_item_ids": os_.get("late_handoff_item_ids") or [],
         "payment_ids": pay["payment_ids"],
         "item_count": os_["item_count"],
         "payment_count": pay["payment_count"],
@@ -188,23 +189,34 @@ def run_case(
     report = report_msg.payload
     final = report["draft"]
 
-    # Confidence: agreement between the two independent policy paths, minus
-    # penalties for anything the verifier had to repair.
+    # Confidence tracks how solid the *data* is, not how confused the model got.
+    #
+    # An earlier version dropped 0.15 whenever the policy agent disagreed with
+    # the engine. That made confidence worse calibrated, not better: the engine
+    # reads the CSVs directly, so a disagreement says the 8B model misread the
+    # evidence - it says nothing about whether the verdict is right. Cases where
+    # the rule fired cleanly on complete data stay high; cases resting on a
+    # missing timestamp or a boundary reading drop hard.
     llm_review = report.get("llm_review", {})
     confidence = 0.95
+
+    # Data quality - the signal that actually predicts correctness.
+    confidence -= 0.10 * min(len(engine.get("ambiguity") or []), 3)
+
+    # Process noise - weak evidence the case was harder than usual.
     if not agrees:
-        confidence -= 0.15
+        confidence -= 0.05
     if not llm_review.get("approved", True):
-        confidence -= 0.08
+        confidence -= 0.03
     confidence += float(llm_review.get("confidence_adjustment", 0.0) or 0.0)
-    confidence -= 0.02 * min(len(report.get("repairs", [])), 4)
+    confidence -= 0.01 * min(len(report.get("repairs", [])), 4)
     all_divergences = [
         d for a in (*coord.workers.values(), coord.policy_agent) for d in a.divergences
     ]
     critical = [d for d in all_divergences if d.get("severity") == "critical"]
     # The guard already corrected these, so the answer is right either way -
     # drift only signals that the model was shakier than usual on this case.
-    confidence -= 0.02 * min(len(critical), 3)
+    confidence -= 0.01 * min(len(critical), 3)
     confidence = round(max(0.35, min(0.99, confidence)), 2)
     final["assessment"]["confidence"] = confidence
 

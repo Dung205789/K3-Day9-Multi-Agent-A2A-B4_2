@@ -154,6 +154,7 @@ def score_case(out: dict, case: dict, store: DataStore) -> dict:
         "payment_ids": [f"{order_id}:{p['payment_sequential']}" for p in facts["payments"]],
         "seller_ids": facts["seller_ids"],
         "late_seller_ids": facts["late_seller_ids"],
+        "late_item_ids": facts["late_item_ids"],
     }
     want_ev = build_evidence(truth_facts, truth)
 

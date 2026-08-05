@@ -53,6 +53,7 @@ class OrderSellerAgent(Agent):
         truth_items = [f"{order_id}:{i['order_item_id']}" for i in items]
         truth_sellers = list(dict.fromkeys(i["seller_id"] for i in items))
         truth_late: list[str] = []
+        truth_late_items: list[str] = []
         breach_detail = []
         for it in items:
             limit = parse_ts(it.get("shipping_limit_date"))
@@ -63,6 +64,7 @@ class OrderSellerAgent(Agent):
                     {"seller_id": it["seller_id"], "item": it["order_item_id"],
                      "overdue_hours": hours}
                 )
+                truth_late_items.append(f"{order_id}:{it['order_item_id']}")
                 if it["seller_id"] not in truth_late:
                     truth_late.append(it["seller_id"])
         truth_item_total = money(sum(i["price"] for i in items))
@@ -110,6 +112,10 @@ class OrderSellerAgent(Agent):
             "freight_total_brl": self.reconcile(
                 "freight_total_brl", data.get("freight_total_brl"), truth_freight
             ),
+            # Which item rows actually breached - the Coordinator needs this to
+            # cite the right evidence on a multi-seller order where only some
+            # sellers were late.
+            "late_handoff_item_ids": truth_late_items,
             "handoff_breaches": breach_detail,
             "seller_handoff_late": bool(truth_late),
             "narrative": data.get("handoff_summary", ""),

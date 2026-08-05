@@ -253,12 +253,13 @@ Chạy trên 50 case thật trong `input/` (giải nén từ `input/input.zip`):
 | ----------------------------------- | ----------------------------------------- |
 | Case xử lý                          | 50/50, 0 hard-gate lỗi                    |
 | Tự chấm (`src/audit.py`)            | **100.00 / 100** (cả 6 hạng mục tối đa)   |
-| Thời gian                           | 100,6 giây (8 worker), ~2,0 s/case         |
-| Lượt gọi LLM                        | 350 (7 lượt/case), 300.654 token, ~$0.065 |
+| Thời gian                           | 87,4 giây (8 worker), ~1,7 s/case          |
+| Lượt gọi LLM                        | 350 (7 lượt/case), 302.541 token, ~$0.066 |
 | Message A2A ghi vào `trace.jsonl`   | 651                                       |
-| Policy agent đồng thuận rule engine | 98% (1 bất đồng: `EC_042`)                |
-| LLM đọc lệch dữ liệu                | 67 field (40 critical) — guard chặn hết   |
+| Policy agent đồng thuận rule engine | 94% (3 bất đồng)                          |
+| LLM đọc lệch dữ liệu                | 70 field (44 critical) — guard chặn hết   |
 | Tổng hoàn đề xuất                   | 3.429,64 BRL                              |
+| Confidence                          | 0,87 – 0,95 (33 case ở mức 0,95)          |
 
 Phân bố kết luận khớp đúng đáp án dựng từ CSV: `valid_split_payment` 9,
 `unsupported_late_claim` 9, `canceled_order_paid` 8, `late_delivery_seller` 8,

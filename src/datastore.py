@@ -197,9 +197,11 @@ class DataStore:
         carrier = parse_ts(order.get("order_delivered_carrier_date"))
 
         late_sellers: list[str] = []
+        late_item_ids: list[str] = []
         for item in items:
             limit = parse_ts(item.get("shipping_limit_date"))
             if carrier and limit and carrier > limit:
+                late_item_ids.append(f"{order_id}:{item['order_item_id']}")
                 if item["seller_id"] not in late_sellers:
                     late_sellers.append(item["seller_id"])
 
@@ -233,6 +235,7 @@ class DataStore:
             ),
             "carrier_after_shipping_limit": bool(late_sellers),
             "late_seller_ids": late_sellers,
+            "late_item_ids": late_item_ids,
             "items": items,
             "payments": payments,
         }
