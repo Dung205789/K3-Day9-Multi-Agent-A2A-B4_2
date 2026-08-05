@@ -4,15 +4,25 @@ from __future__ import annotations
 import json
 
 from ..a2a import Message
-from ..datastore import parse_ts
+from ..config import LATE_COMPARISON
+from ..datastore import delivered_late, parse_ts
 from .base import JSON_ONLY, Agent, timed
+
+_LATE_RULE = (
+    "delivered_after_estimate = NGÀY của order_delivered_customer_date > NGÀY của "
+    "order_estimated_delivery_date. Giao trong cùng ngày cam kết, dù muộn giờ, "
+    "vẫn tính là ĐÚNG HẠN."
+    if LATE_COMPARISON == "date"
+    else "delivered_after_estimate = order_delivered_customer_date > "
+         "order_estimated_delivery_date (so trực tiếp cả ngày lẫn giờ)."
+)
 
 SYSTEM = f"""Bạn là Delivery Timeline Analyst của Olist.
 Quyền truy cập: bảng orders (các mốc thời gian) và order_items (shipping_limit_date).
 Bạn KHÔNG thấy dữ liệu payment.
 
 Nhiệm vụ:
-1. delivered_after_estimate = order_delivered_customer_date > order_estimated_delivery_date.
+1. {_LATE_RULE}
    Nếu một trong hai mốc trống thì = false.
 2. Tính số ngày trễ (delay_days), có thể âm nếu giao sớm.
 3. carrier_after_shipping_limit = order_delivered_carrier_date > shipping_limit_date
@@ -45,7 +55,7 @@ class DeliveryAgent(Agent):
         estimated = parse_ts(order.get("order_estimated_delivery_date"))
         carrier = parse_ts(order.get("order_delivered_carrier_date"))
 
-        late = bool(delivered and estimated and delivered > estimated)
+        late = delivered_late(delivered, estimated)
         delay = (
             round((delivered - estimated).total_seconds() / 86400, 2)
             if delivered and estimated

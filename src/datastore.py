@@ -14,9 +14,18 @@ from typing import Any, Iterable
 
 import pandas as pd
 
-from .config import DATA_DIR
+from .config import DATA_DIR, LATE_COMPARISON
 
 TS_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def delivered_late(delivered, estimated) -> bool:
+    """Was the order delivered after the promised date? See config.LATE_COMPARISON."""
+    if not delivered or not estimated:
+        return False
+    if LATE_COMPARISON == "date":
+        return delivered.date() > estimated.date()
+    return delivered > estimated
 
 
 def parse_ts(value: Any) -> datetime | None:
@@ -225,9 +234,7 @@ class DataStore:
             "expected_total_brl": expected_total,
             "payment_gap_brl": money(payment_total - expected_total),
             "payment_matches": abs(payment_total - expected_total) <= 0.10,
-            "delivered_after_estimate": bool(
-                delivered and estimated and delivered > estimated
-            ),
+            "delivered_after_estimate": delivered_late(delivered, estimated),
             "delivery_delay_days": (
                 round((delivered - estimated).total_seconds() / 86400, 2)
                 if delivered and estimated

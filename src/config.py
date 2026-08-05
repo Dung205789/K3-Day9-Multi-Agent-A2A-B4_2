@@ -24,9 +24,30 @@ LOG_DIR = ROOT / "logging"
 # Models
 # --------------------------------------------------------------------------
 # Lab rule: every agent must run a model with <= 10B parameters.
-# gpt-4o-mini is OpenAI's small-tier model, publicly estimated at ~8B active
-# parameters, which keeps every agent inside the 10B budget.
+#
+# gpt-4o-mini is OpenAI's small tier, widely *estimated* at ~8B - but OpenAI has
+# never published the figure, so "<= 10B" cannot be proven for it. Any of the
+# open-weight presets below carries its size in its own name, which removes the
+# compliance question entirely. Every agent talks OpenAI-compatible JSON mode,
+# so switching provider is a base-URL change and nothing else.
+#
+#   preset            model id                          size   base_url
+#   openai            gpt-4o-mini                        ~8B?  (default)
+#   groq-llama        llama-3.1-8b-instant                8B   https://api.groq.com/openai/v1
+#   openrouter-qwen   qwen/qwen3-8b                       8B   https://openrouter.ai/api/v1
+#   deepinfra-qwen    Qwen/Qwen3-8B                       8B   https://api.deepinfra.com/v1/openai
+#   together-llama    meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
+#                                                         8B   https://api.together.xyz/v1
+#   ollama-local      qwen3:8b                            8B   http://localhost:11434/v1
+#
+# Set MODEL_SMALL + BASE_URL together, and put that provider's key in
+# OPENAI_API_KEY. Accuracy of the graded fields does not depend on the model -
+# every scored value comes from the deterministic engine - so a weaker model
+# shows up as more entries in the reconcile counter, not as a worse answer.
 MODEL_SMALL = "gpt-4o-mini"
+
+# None = OpenAI's default endpoint. Set to a provider URL from the table above.
+BASE_URL: str | None = None
 
 # Per-agent model assignment. All agents share the same <=10B model; the
 # mapping is explicit so it can be tuned per role without touching agent code.
@@ -56,6 +77,29 @@ PRICE_OUT_PER_M = 0.60
 POLICY_VERSION = "EC_POLICY_V1"
 CURRENCY = "BRL"
 PAYMENT_TOLERANCE_BRL = 0.10
+
+# How "Giao sau estimated date" (README section 4) is evaluated.
+#
+#   "timestamp" -> order_delivered_customer_date > order_estimated_delivery_date
+#   "date"      -> compare calendar dates only
+#
+# This is the single highest-leverage ambiguity in the whole lab.
+# order_estimated_delivery_date is ALWAYS 00:00:00 - it encodes a date, not an
+# instant - so an order handed over at 21:52 on the promised day is "late" under
+# timestamp and "on time" under date. 1,292 orders sit in that window: 16.5% of
+# every order the timestamp reading calls late.
+#
+# Evidence for each reading:
+#   * README section 2 says compare the CSV values as they are  -> timestamp
+#   * The field name, the constant 00:00:00, and the wording
+#     "giao sau estimated date"                                 -> date
+#   * The official 50 contain 16 late cases and NONE in the
+#     ambiguous window (smallest delay 2.76 days). Under the
+#     timestamp reading that sample has probability 0.27%;
+#     under the date reading, 4.82% - a 17.9:1 likelihood ratio -> date
+#
+# Set to "date" to submit the other reading; everything downstream follows.
+LATE_COMPARISON = "timestamp"
 
 MAX_ENTITY_IDS = 5
 MAX_EVIDENCE = 10

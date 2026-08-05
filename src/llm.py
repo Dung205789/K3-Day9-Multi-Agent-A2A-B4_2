@@ -8,6 +8,7 @@ import time
 from openai import OpenAI
 
 from .config import (
+    BASE_URL,
     MAX_RETRIES,
     PRICE_IN_PER_M,
     PRICE_OUT_PER_M,
@@ -24,7 +25,11 @@ def client() -> OpenAI:
     global _client
     with _client_lock:
         if _client is None:
-            _client = OpenAI(api_key=api_key(), timeout=REQUEST_TIMEOUT)
+            # base_url covers every OpenAI-compatible provider (Groq, Together,
+            # OpenRouter, DeepInfra, a local Ollama) - see config.MODEL_SMALL.
+            _client = OpenAI(
+                api_key=api_key(), timeout=REQUEST_TIMEOUT, base_url=BASE_URL
+            )
     return _client
 
 
