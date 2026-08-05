@@ -1,0 +1,6 @@
+{
+  "model": "meta/llama-3.1-8b-instruct",
+  "parameter_size": "8B",
+  "framework": "Custom Python Multi-Agent Framework (Agent-to-Agent Handoff)",
+  "runtime": "Python 3.13"
+}
