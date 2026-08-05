@@ -176,7 +176,8 @@ def score_case(out: dict, case: dict, store: DataStore) -> dict:
     parts["affected_entities"] = ent * WEIGHTS["affected_entities"]
 
     got_causes = [c["cause_code"] for c in out["root_cause_analysis"]["ranked_causes"]]
-    cause_ok = bool(got_causes) and got_causes[0] == truth["root_cause_code"]
+    want_causes = [c["cause_code"] for c in truth["ranked_causes"]]
+    cause_ok = got_causes == want_causes
     got_parties = {
         (p["party_type"], p["party_id"])
         for p in out["root_cause_analysis"]["responsible_parties"]

@@ -163,6 +163,17 @@ LATE_COMPARISON = "timestamp"
 # died with this run: the entity variants are done, and the reasoning that
 # transplanted the evidence result onto entities does not hold.
 SELLER_IN_MONEY_ISSUE_ENTITIES = True
+
+# Does late_delivery_seller declare a second ranked root cause?
+#
+# Its rule names two facts and the spec has a code for each:
+#   "Giao sau estimated date"                  -> CARRIER_DELIVERED_AFTER_ESTIMATE
+#   "carrier nhận hàng sau shipping_limit_date"-> SELLER_HANDOFF_AFTER_LIMIT
+# Both are true on those cases, `ranked_causes` accepts three, and `rank` only
+# means something above one. "Nguyên nhân gốc" has sat 4.17% short forever;
+# 8 late_delivery_seller cases citing one of two causes predicts 2.93%-5.33%
+# depending on how the component splits between cause and party.
+RANK_SECONDARY_CAUSES = True
 MONEY_ISSUES = ("canceled_order_paid", "unavailable_order_paid")
 
 MAX_ENTITY_IDS = 5

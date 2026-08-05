@@ -7,7 +7,13 @@ point: an LLM that hallucinates a refund gets caught here.
 """
 from __future__ import annotations
 
-from .config import ISSUE_RULES, MAX_EVIDENCE, PAYMENT_TOLERANCE_BRL
+from .config import (
+    ISSUE_RULES,
+    MAX_EVIDENCE,
+    MAX_ROOT_CAUSES,
+    PAYMENT_TOLERANCE_BRL,
+    RANK_SECONDARY_CAUSES,
+)
 from .datastore import money, parse_ts
 
 # Priority order straight from the spec table - first match wins.
@@ -19,6 +25,16 @@ PRIORITY = [
     "valid_split_payment",
     "unsupported_late_claim",
 ]
+
+# A seller breach is the one verdict whose rule names two facts that each have
+# their own root-cause code: "Giao sau estimated date VÀ carrier nhận hàng sau
+# shipping_limit_date". Both statements are true, the schema takes up to three
+# ranked causes, and `rank` only carries meaning when more than one applies.
+# Every other verdict rests on a single positive fact (the other conditions are
+# negations, which have no code).
+SECONDARY_CAUSES = {
+    "late_delivery_seller": ["CARRIER_DELIVERED_AFTER_ESTIMATE"],
+}
 
 ISSUE_LABELS = {
     "canceled_order_paid": "Đơn bị hủy nhưng đã thanh toán",
@@ -120,9 +136,15 @@ def evaluate(facts: dict) -> dict:
     elif party_type:
         parties.append({"party_type": party_type, "party_id": party_id})
 
+    ranked = [{"cause_code": cause, "rank": 1}]
+    if RANK_SECONDARY_CAUSES:
+        for n, extra in enumerate(SECONDARY_CAUSES.get(issue, []), start=2):
+            ranked.append({"cause_code": extra, "rank": n})
+
     return {
         "primary_issue": issue,
         "label": ISSUE_LABELS[issue],
+        "ranked_causes": ranked[:MAX_ROOT_CAUSES],
         "ambiguity": _ambiguity(facts, issue, fallback),
         "case_status": case_status,
         "root_cause_code": cause,

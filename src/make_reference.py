@@ -83,6 +83,18 @@ VARIANTS: dict[str, str] = {
         "late_delivery_*: bỏ payment khỏi evidence "
         "(refund là freight, luật không đọc payment row)"
     ),
+    "causes-ranked-two": (
+        "late_delivery_seller: khai 2 root cause - SELLER_HANDOFF_AFTER_LIMIT "
+        "hạng 1 và CARRIER_DELIVERED_AFTER_ESTIMATE hạng 2 (cả hai đều đúng)"
+    ),
+}
+
+# For a seller breach, both statements in the rule are true: the carrier
+# delivered after the estimate AND the seller handed over after the limit.
+# The schema allows up to 3 ranked causes and the field is called *ranked*,
+# which only means something when more than one can apply.
+SECONDARY_CAUSE = {
+    "late_delivery_seller": "CARRIER_DELIVERED_AFTER_ESTIMATE",
 }
 
 
@@ -127,6 +139,10 @@ def build_answer(case: dict, store: DataStore, variant: str = "base") -> dict:
 
     actions = list(eng["resolution_actions"])
 
+    causes = [{"cause_code": eng["root_cause_code"], "rank": 1}]
+    if variant == "causes-ranked-two" and issue in SECONDARY_CAUSE:
+        causes.append({"cause_code": SECONDARY_CAUSE[issue], "rank": 2})
+
     return {
         "case_id": case_id,
         "assessment": {
@@ -141,7 +157,7 @@ def build_answer(case: dict, store: DataStore, variant: str = "base") -> dict:
             "payment_ids": payment_ids,
         },
         "root_cause_analysis": {
-            "ranked_causes": [{"cause_code": eng["root_cause_code"], "rank": 1}],
+            "ranked_causes": causes,
             "responsible_parties": eng["responsible_parties"],
         },
         "evidence_ids": evidence[:MAX_EVIDENCE],

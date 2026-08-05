@@ -184,7 +184,7 @@ def run_case(
             "payment_ids": cap(facts["payment_ids"]),
         },
         "root_cause_analysis": {
-            "ranked_causes": [{"cause_code": engine["root_cause_code"], "rank": 1}],
+            "ranked_causes": engine["ranked_causes"],
             "responsible_parties": parties,
         },
         "evidence_ids": evidence[:MAX_EVIDENCE],

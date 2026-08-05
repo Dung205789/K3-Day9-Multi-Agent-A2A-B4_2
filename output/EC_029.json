@@ -26,6 +26,10 @@
       {
         "cause_code": "SELLER_HANDOFF_AFTER_LIMIT",
         "rank": 1
+      },
+      {
+        "cause_code": "CARRIER_DELIVERED_AFTER_ESTIMATE",
+        "rank": 2
       }
     ],
     "responsible_parties": [
