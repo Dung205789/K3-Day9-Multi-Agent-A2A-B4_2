@@ -72,10 +72,12 @@ class DataLoader:
         return self.orders.get(order_id)
 
     def get_order_items(self, order_id: str) -> List[dict]:
-        return self.order_items.get(order_id, [])
+        items = self.order_items.get(order_id, [])
+        return sorted(items, key=lambda x: int(x.get("order_item_id") or 1))
 
     def get_order_payments(self, order_id: str) -> List[dict]:
-        return self.order_payments.get(order_id, [])
+        payments = self.order_payments.get(order_id, [])
+        return sorted(payments, key=lambda x: int(x.get("payment_sequential") or 1))
 
     def get_seller(self, seller_id: str) -> Optional[dict]:
         return self.sellers.get(seller_id)

@@ -55,6 +55,8 @@ class OrderSellerAgent:
                     if seller_id not in late_sellers:
                         late_sellers.append(seller_id)
 
+        item_ids.sort(key=lambda x: int(x.split(":")[-1]) if x.split(":")[-1].isdigit() else 1)
+
         return {
             "order_found": True,
             "order_id": order_id,

@@ -18,6 +18,7 @@ class PaymentAgent:
             payment_ids.append(f"{order_id}:{seq}")
             payment_total += val
 
+        payment_ids.sort(key=lambda x: int(x.split(":")[-1]) if x.split(":")[-1].isdigit() else 1)
         payment_total = round(payment_total, 2)
         total_order_cost = round(item_total + freight_total, 2)
         diff = abs(payment_total - total_order_cost)
