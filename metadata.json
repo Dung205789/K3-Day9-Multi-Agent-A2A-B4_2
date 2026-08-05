@@ -1,7 +1,7 @@
 {
   "system": "K3 Day-9 Multi-Agent E-commerce Dispute Resolution",
   "version": "1.0.0",
-  "generated_at": "2026-08-05T04:55:45+00:00",
+  "generated_at": "2026-08-05T05:32:19+00:00",
   "policy_version": "EC_POLICY_V1",
   "framework": {
     "name": "custom A2A orchestration (no agent framework)",
@@ -88,13 +88,13 @@
   },
   "run_stats": {
     "cases_run": 50,
-    "wall_seconds": 95.7,
-    "avg_case_seconds": 1.91,
+    "wall_seconds": 91.9,
+    "avg_case_seconds": 1.84,
     "issue_distribution": {
+      "unavailable_order_paid": 8,
+      "valid_split_payment": 9,
       "canceled_order_paid": 8,
       "late_delivery_seller": 8,
-      "valid_split_payment": 9,
-      "unavailable_order_paid": 8,
       "unsupported_late_claim": 9,
       "late_delivery_logistics": 8
     },
@@ -107,13 +107,13 @@
       "EC_047"
     ],
     "verifier_repairs": 0,
-    "llm_data_divergences": 82,
-    "llm_data_divergences_critical": 52,
+    "llm_data_divergences": 84,
+    "llm_data_divergences_critical": 53,
     "usage": {
       "calls": 350,
-      "prompt_tokens": 257897,
-      "completion_tokens": 44991,
-      "total_tokens": 302888,
+      "prompt_tokens": 257766,
+      "completion_tokens": 45041,
+      "total_tokens": 302807,
       "estimated_cost_usd": 0.0657
     }
   }

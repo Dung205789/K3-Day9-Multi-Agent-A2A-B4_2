@@ -211,8 +211,12 @@ def run_case(
     # three are properties of the model, not of the case. Dropping them makes
     # confidence **reproducible across models**: swapping gpt-4o-mini for
     # Qwen3-8B changed 20 of these numbers before, and none of them after.
+    # Base is 1.0, not 0.95. Confidence states how certain the *derivation* is,
+    # not how the world feels: when one rule matches on complete data, the
+    # verdict follows necessarily from the CSVs and there is no residual doubt
+    # left to shave off. Cases resting on missing or boundary data still drop.
     llm_review = report.get("llm_review", {})
-    confidence = 0.95
+    confidence = 1.0
     confidence -= 0.10 * min(len(engine.get("ambiguity") or []), 3)
     # Repairs come from the deterministic audit, so they *are* about the case.
     confidence -= 0.01 * min(len(report.get("repairs", [])), 4)
@@ -223,7 +227,7 @@ def run_case(
     # guard replaced each of these with the CSV value before it reached the
     # answer.
     critical = [d for d in all_divergences if d.get("severity") == "critical"]
-    confidence = round(max(0.35, min(0.99, confidence)), 2)
+    confidence = round(max(0.35, min(1.0, confidence)), 2)
     final["assessment"]["confidence"] = confidence
 
     summary_msg = coord.summarize(
