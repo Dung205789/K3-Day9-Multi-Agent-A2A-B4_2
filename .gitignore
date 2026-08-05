@@ -1,0 +1,44 @@
+# Environment variables & secrets (CRITICAL: Never commit .env)
+.env
+.env.*
+!.env.example
+
+# Python cache & build files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# IDE & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Output zip files generated for submission
+*.zip
+
+# Note: output folder and trace.jsonl are kept in repository for verification/audit per guidelines

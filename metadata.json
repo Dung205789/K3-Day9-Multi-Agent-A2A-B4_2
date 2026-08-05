@@ -1,0 +1,43 @@
+{
+  "project_name": "Multi-Agent E-commerce Dispute Resolution System",
+  "ai_architecture": {
+    "framework": "Custom Python Multi-Agent Pipeline with Specialist Domain Handoffs",
+    "design_pattern": "Orchestrated Specialist Agents with Deterministic Critic & Verifier Hard Gate",
+    "agents": [
+      "Coordinator Agent",
+      "Order & Seller Agent",
+      "Payment Agent",
+      "Delivery Agent",
+      "Policy Agent",
+      "Verifier Agent"
+    ]
+  },
+  "models_config": {
+    "max_allowed_parameters": "10B",
+    "default_declared_model": "llama-3.1-8b-instant",
+    "alternative_supported_models": [
+      "gemma-2-9b-it",
+      "qwen2.5:7b-instruct-fp16",
+      "meta-llama/llama-3.1-8b-instruct",
+      "qwen2.5:7b"
+    ],
+    "parameter_size": "<= 10B parameters for all agent calls",
+    "provider_support": ["groq", "gemini", "openrouter", "ollama", "openai", "offline_mock"],
+    "note": "Model names are strictly declared in source code (src/config.py) and this metadata file, never hidden in .env per grading rules."
+  },
+  "runtime_environment": {
+    "language": "Python 3.10+",
+    "core_dependencies": [
+      "pandas>=2.0.0",
+      "pydantic>=2.0.0",
+      "python-dotenv>=1.0.0",
+      "openai>=1.0.0",
+      "google-generativeai>=0.5.0"
+    ],
+    "execution_entrypoint": "python3 main.py"
+  },
+  "compliance_and_verifiability": {
+    "hard_gate_protection": "Verifier Agent cross-references 100% of generated Evidence IDs against raw Olist CSV datasets before output emission.",
+    "traceability": "All agent reasoning steps and inter-agent handoffs are logged in chronological JSONL structure to trace.jsonl."
+  }
+}
