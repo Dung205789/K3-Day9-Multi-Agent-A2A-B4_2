@@ -191,3 +191,85 @@ Trong repo phải có thêm:
 2. Khi nộp bài, chỉ nén folder `output/` thành file zip; không đưa source code, `.env` hoặc các file audit vào zip này.
 3. Luôn commit toàn bộ source code lên repo trước khi nộp file output zip để chấm điểm.
 4. API key và secret phải đặt trong file `.env` và không được commit. Tên model sử dụng phải được khai báo rõ trong source code, đồng thời ghi lại trong `metadata.json` (Tức là model name không ghi vào .env, cho vào code để chấm)
+
+---
+
+# Phần triển khai
+
+## 10. Cách chạy
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env          # rồi điền OPENAI_API_KEY
+
+python -m src.make_inputs     # sinh input/EC_001..EC_050.json (bỏ qua nếu đã có sẵn)
+python -m src.run_all         # chạy 50 case -> output/ + trace.jsonl + metadata.json
+python -m src.audit           # tự chấm output theo trọng số mục 8
+python -m src.package_submission --prefix output   # submission.zip: output/EC_001.json …
+
+python -m src.server          # console demo -> http://127.0.0.1:8000
+```
+
+Chạy một phần để thử nhanh:
+
+```bash
+python -m src.run_all --limit 5 --workers 3
+python -m src.run_all --only EC_045          # case có bất đồng policy
+```
+
+> Tên model nằm trong `src/config.py` (`MODEL_SMALL = "gpt-4o-mini"`), không nằm
+> trong `.env` — theo đúng yêu cầu mục 9.4.
+
+## 11. Console demo
+
+`python -m src.server` mở một giao diện vận hành gồm 3 view:
+
+- **Hồ sơ** — 50 case, lọc theo loại kết luận. Mỗi case có 4 tab: kết luận (kèm
+  bảng rule engine chỉ rõ luật nào khớp), luồng A2A (sơ đồ agent + transcript),
+  dữ liệu gốc (row CSV thật đứng sau quyết định), và output JSON.
+  Nút **“Chạy lại case này”** chạy pipeline thật và stream từng message A2A về
+  giao diện qua SSE — node trên sơ đồ sáng lên theo message.
+- **Tổng quan** — phân bố kết luận, tiền hoàn theo nhóm, phân bố confidence, chi
+  phí LLM theo agent, các lần LLM đọc lệch dữ liệu bị guard chặn, và bảng tự chấm.
+- **Kiến trúc** — sơ đồ agent kèm phạm vi dữ liệu từng agent, luồng 8 bước, thông
+  tin model và runtime.
+
+Giao diện không cần build step và không có dependency ngoài (`web/` chỉ có 3 file).
+
+## 12. Kết quả trên bộ input chính thức
+
+Chạy trên 50 case thật trong `input/` (giải nén từ `input/input.zip`):
+
+| Chỉ số                              | Giá trị                                   |
+| ----------------------------------- | ----------------------------------------- |
+| Case xử lý                          | 50/50, 0 hard-gate lỗi                    |
+| Tự chấm (`src/audit.py`)            | **100.00 / 100** (cả 6 hạng mục tối đa)   |
+| Thời gian                           | 100,6 giây (8 worker), ~2,0 s/case         |
+| Lượt gọi LLM                        | 350 (7 lượt/case), 300.654 token, ~$0.065 |
+| Message A2A ghi vào `trace.jsonl`   | 651                                       |
+| Policy agent đồng thuận rule engine | 98% (1 bất đồng: `EC_042`)                |
+| LLM đọc lệch dữ liệu                | 67 field (40 critical) — guard chặn hết   |
+| Tổng hoàn đề xuất                   | 3.429,64 BRL                              |
+
+Phân bố kết luận khớp đúng đáp án dựng từ CSV: `valid_split_payment` 9,
+`unsupported_late_claim` 9, `canceled_order_paid` 8, `late_delivery_seller` 8,
+`unavailable_order_paid` 8, `late_delivery_logistics` 8.
+
+Trong bộ chính thức có **8 case không có item row** (`EC_005`, `EC_011`,
+`EC_013`, `EC_019`, `EC_024`, `EC_027`, `EC_028`, `EC_036`) — ca biên mục 6 nêu
+riêng. Cả 8 đều ra `item_ids`/`seller_ids` rỗng và `item_total_brl`/
+`freight_total_brl` bằng `0.0`, không case nào dính hard gate.
+
+`src/audit.py` là bộ tự chấm của repo này, dựng lại đáp án đúng trực tiếp từ CSV
+rồi so với `output/` theo đúng trọng số mục 8. Nó không phải bộ chấm chính thức,
+nhưng một case đạt 100 ở đây là case mà mọi field khớp với dữ liệu.
+
+## 13. Ghi chú về `input/`
+
+`input/` chứa 50 case chính thức, giải nén từ `input/input.zip`. Pipeline đọc
+thẳng mọi file `EC_*.json` có trong thư mục.
+
+`src/make_inputs.py` là công cụ dự phòng dùng hồi repo chưa có bộ input: nó chọn
+order thật từ Olist phủ đủ 6 nhánh EC_POLICY_V1 và sinh khiếu nại tiếng Việt
+theo góc nhìn khách hàng. Không còn cần cho việc nộp bài, nhưng vẫn hữu ích để
+sinh thêm ca kiểm thử — nhất là các nhánh mà bộ chính thức không chạm tới.
