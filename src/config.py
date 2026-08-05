@@ -25,29 +25,71 @@ LOG_DIR = ROOT / "logging"
 # --------------------------------------------------------------------------
 # Lab rule: every agent must run a model with <= 10B parameters.
 #
-# gpt-4o-mini is OpenAI's small tier, widely *estimated* at ~8B - but OpenAI has
-# never published the figure, so "<= 10B" cannot be proven for it. Any of the
-# open-weight presets below carries its size in its own name, which removes the
-# compliance question entirely. Every agent talks OpenAI-compatible JSON mode,
-# so switching provider is a base-URL change and nothing else.
+# gpt-4o-mini was the first choice but OpenAI has never published its parameter
+# count, so "<= 10B" could only ever be asserted, not shown. Qwen3-8B is
+# open-weight: the size is in the model card and in the name. Every preset below
+# speaks the OpenAI-compatible API, so switching provider is one line here.
 #
-#   preset            model id                          size   base_url
-#   openai            gpt-4o-mini                        ~8B?  (default)
-#   groq-llama        llama-3.1-8b-instant                8B   https://api.groq.com/openai/v1
-#   openrouter-qwen   qwen/qwen3-8b                       8B   https://openrouter.ai/api/v1
-#   deepinfra-qwen    Qwen/Qwen3-8B                       8B   https://api.deepinfra.com/v1/openai
-#   together-llama    meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
-#                                                         8B   https://api.together.xyz/v1
-#   ollama-local      qwen3:8b                            8B   http://localhost:11434/v1
+#   preset       model id                      size  key env              published?
+#   qwen3-8b     qwen/qwen3-8b                  8B   OPENROUTER_API_KEY   yes
+#   llama31-8b   llama-3.1-8b-instant           8B   GROQ_API_KEY         yes
+#   qwen3-local  qwen3:8b                       8B   (none, Ollama)       yes
+#   gpt4o-mini   gpt-4o-mini                   ~8B?  OPENAI_API_KEY       NO
 #
-# Set MODEL_SMALL + BASE_URL together, and put that provider's key in
-# OPENAI_API_KEY. Accuracy of the graded fields does not depend on the model -
-# every scored value comes from the deterministic engine - so a weaker model
-# shows up as more entries in the reconcile counter, not as a worse answer.
-MODEL_SMALL = "gpt-4o-mini"
+# Accuracy of the graded fields does not depend on the model - every scored
+# value comes from the deterministic engine - so a weaker model shows up as
+# more entries in the reconcile counter, not as a worse answer.
+PROVIDER = "gpt4o-mini"
 
-# None = OpenAI's default endpoint. Set to a provider URL from the table above.
-BASE_URL: str | None = None
+PROVIDERS = {
+    "qwen3-8b": {
+        "model": "qwen/qwen3-8b",
+        "base_url": "https://openrouter.ai/api/v1",
+        "key_env": "OPENROUTER_API_KEY",
+        "params_b": 8,
+        "price_in": 0.035,
+        "price_out": 0.138,
+        "weights": "open (Apache-2.0)",
+        # Qwen3 ships a thinking mode that is on by default. Left on, it spends
+        # the token budget narrating and gets cut off mid-sentence before it
+        # ever emits the JSON object.
+        "extra_body": {"reasoning": {"enabled": False}},
+    },
+    "llama31-8b": {
+        "model": "llama-3.1-8b-instant",
+        "base_url": "https://api.groq.com/openai/v1",
+        "key_env": "GROQ_API_KEY",
+        "params_b": 8,
+        "price_in": 0.05,
+        "price_out": 0.08,
+        "weights": "open (Llama 3.1 license)",
+    },
+    "qwen3-local": {
+        "model": "qwen3:8b",
+        "base_url": "http://localhost:11434/v1",
+        "key_env": "OLLAMA_API_KEY",
+        "params_b": 8,
+        "price_in": 0.0,
+        "price_out": 0.0,
+        "weights": "open (Apache-2.0), chạy local",
+    },
+    "gpt4o-mini": {
+        "model": "gpt-4o-mini",
+        "base_url": None,
+        "key_env": "OPENAI_API_KEY",
+        "params_b": None,  # OpenAI does not publish this
+        "price_in": 0.15,
+        "price_out": 0.60,
+        "weights": "closed",
+    },
+}
+
+_P = PROVIDERS[PROVIDER]
+MODEL_SMALL = _P["model"]
+BASE_URL: str | None = _P["base_url"]
+KEY_ENV: str = _P["key_env"]
+MODEL_WEIGHTS = _P["weights"]
+EXTRA_BODY: dict = _P.get("extra_body", {})
 
 # Per-agent model assignment. All agents share the same <=10B model; the
 # mapping is explicit so it can be tuned per role without touching agent code.
@@ -61,15 +103,18 @@ AGENT_MODELS = {
 }
 
 MODEL_PARAM_BUDGET_B = 10
-MODEL_PARAM_ESTIMATE_B = 8  # public estimate for gpt-4o-mini
+MODEL_PARAM_B = _P["params_b"]  # None when the vendor does not publish it
 
 TEMPERATURE = 0.0
-MAX_RETRIES = 3
-REQUEST_TIMEOUT = 60
+# Open-weight endpoints rate-limit harder than OpenAI's and occasionally return
+# prose instead of JSON, so a run at 6 workers dropped 10 of 50 cases at
+# MAX_RETRIES=3. Both failure modes are transient and retry cleanly.
+MAX_RETRIES = 6
+REQUEST_TIMEOUT = 90
 
-# Pricing (USD per 1M tokens) for gpt-4o-mini - used for the cost readout only.
-PRICE_IN_PER_M = 0.15
-PRICE_OUT_PER_M = 0.60
+# Pricing (USD per 1M tokens) - used for the cost readout only.
+PRICE_IN_PER_M = _P["price_in"]
+PRICE_OUT_PER_M = _P["price_out"]
 
 # --------------------------------------------------------------------------
 # Business constants (EC_POLICY_V1)
@@ -162,9 +207,13 @@ ISSUE_RULES = {
 
 
 def api_key() -> str:
-    key = os.getenv("OPENAI_API_KEY", "").strip()
+    """Key for the configured provider. Ollama needs none."""
+    key = os.getenv(KEY_ENV, "").strip()
     if not key:
+        if PROVIDER == "qwen3-local":
+            return "ollama"  # local server ignores the value but the SDK wants one
         raise RuntimeError(
-            "OPENAI_API_KEY is missing. Copy .env.example to .env and fill it in."
+            f"{KEY_ENV} is missing (PROVIDER={PROVIDER!r}). "
+            "Copy .env.example to .env and fill it in."
         )
     return key

@@ -19,13 +19,16 @@ from pathlib import Path
 from .a2a import TraceRecorder
 from .config import (
     AGENT_MODELS,
+    BASE_URL,
     INPUT_DIR,
     LOG_DIR,
+    MODEL_PARAM_B,
     MODEL_PARAM_BUDGET_B,
-    MODEL_PARAM_ESTIMATE_B,
     MODEL_SMALL,
+    MODEL_WEIGHTS,
     OUTPUT_DIR,
     POLICY_VERSION,
+    PROVIDER,
     ROOT,
     TEMPERATURE,
 )
@@ -66,17 +69,24 @@ def write_metadata(stats: dict) -> None:
             "messaging": "in-process A2A bus, FIPA-style performatives, JSONL trace",
         },
         "models": {
-            "provider": "OpenAI",
+            "provider": PROVIDER,
+            "endpoint": BASE_URL or "https://api.openai.com/v1",
             "default_model": MODEL_SMALL,
             "per_agent": AGENT_MODELS,
-            "parameter_size_estimate_b": MODEL_PARAM_ESTIMATE_B,
+            "parameter_size_b": MODEL_PARAM_B,
             "parameter_budget_b": MODEL_PARAM_BUDGET_B,
-            "within_budget": MODEL_PARAM_ESTIMATE_B <= MODEL_PARAM_BUDGET_B,
+            "within_budget": (
+                MODEL_PARAM_B is not None and MODEL_PARAM_B <= MODEL_PARAM_BUDGET_B
+            ),
+            "weights": MODEL_WEIGHTS,
             "temperature": TEMPERATURE,
             "decoding": "JSON mode (response_format=json_object)",
             "note": (
-                "Every agent runs gpt-4o-mini, OpenAI's small tier, publicly "
-                "estimated at ~8B active parameters - inside the 10B lab limit."
+                f"Every agent runs {MODEL_SMALL} ({MODEL_PARAM_B}B parameters, "
+                f"{MODEL_WEIGHTS}) - a published figure, inside the "
+                f"{MODEL_PARAM_BUDGET_B}B lab limit."
+                if MODEL_PARAM_B is not None
+                else f"{MODEL_SMALL} has no published parameter count."
             ),
         },
         "agents": [
@@ -160,6 +170,14 @@ def main() -> None:
         )
 
     wall = round(time.perf_counter() - started, 1)
+    # A partial run leaves stale files from the previous run mixed in with fresh
+    # ones - the audit would then score a state that no single run produced.
+    if len(results) != len(cases):
+        missing = sorted({c["case_id"] for c in cases} - set(results))
+        print(f"\n!!! CHỈ {len(results)}/{len(cases)} CASE THÀNH CÔNG")
+        print(f"!!! thiếu: {missing}")
+        print("!!! output/ đang lẫn file cũ - chạy lại trước khi đóng gói:")
+        print(f"!!!   python -m src.run_all --only {' '.join(missing)}")
     issues: dict[str, int] = {}
     refund_total = 0.0
     disagreements = []

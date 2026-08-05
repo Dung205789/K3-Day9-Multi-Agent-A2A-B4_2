@@ -1,7 +1,7 @@
 {
   "system": "K3 Day-9 Multi-Agent E-commerce Dispute Resolution",
   "version": "1.0.0",
-  "generated_at": "2026-08-05T03:53:50+00:00",
+  "generated_at": "2026-08-05T04:29:02+00:00",
   "policy_version": "EC_POLICY_V1",
   "framework": {
     "name": "custom A2A orchestration (no agent framework)",
@@ -17,7 +17,8 @@
     "messaging": "in-process A2A bus, FIPA-style performatives, JSONL trace"
   },
   "models": {
-    "provider": "OpenAI",
+    "provider": "gpt4o-mini",
+    "endpoint": "https://api.openai.com/v1",
     "default_model": "gpt-4o-mini",
     "per_agent": {
       "coordinator": "gpt-4o-mini",
@@ -27,12 +28,13 @@
       "policy": "gpt-4o-mini",
       "verifier": "gpt-4o-mini"
     },
-    "parameter_size_estimate_b": 8,
+    "parameter_size_b": null,
     "parameter_budget_b": 10,
-    "within_budget": true,
+    "within_budget": false,
+    "weights": "closed",
     "temperature": 0.0,
     "decoding": "JSON mode (response_format=json_object)",
-    "note": "Every agent runs gpt-4o-mini, OpenAI's small tier, publicly estimated at ~8B active parameters - inside the 10B lab limit."
+    "note": "gpt-4o-mini has no published parameter count."
   },
   "agents": [
     {
@@ -86,31 +88,32 @@
   },
   "run_stats": {
     "cases_run": 50,
-    "wall_seconds": 86.4,
-    "avg_case_seconds": 1.73,
+    "wall_seconds": 82.7,
+    "avg_case_seconds": 1.65,
     "issue_distribution": {
-      "unavailable_order_paid": 8,
       "canceled_order_paid": 8,
-      "unsupported_late_claim": 9,
-      "late_delivery_seller": 8,
       "valid_split_payment": 9,
+      "unavailable_order_paid": 8,
+      "late_delivery_seller": 8,
+      "unsupported_late_claim": 9,
       "late_delivery_logistics": 8
     },
     "total_recommended_refund_brl": 3429.64,
-    "policy_agreement_rate": 0.96,
+    "policy_agreement_rate": 0.94,
     "policy_disagreement_cases": [
       "EC_002",
+      "EC_035",
       "EC_047"
     ],
     "verifier_repairs": 0,
-    "llm_data_divergences": 81,
-    "llm_data_divergences_critical": 51,
+    "llm_data_divergences": 83,
+    "llm_data_divergences_critical": 53,
     "usage": {
       "calls": 350,
-      "prompt_tokens": 257561,
-      "completion_tokens": 44871,
-      "total_tokens": 302432,
-      "estimated_cost_usd": 0.0656
+      "prompt_tokens": 257784,
+      "completion_tokens": 45007,
+      "total_tokens": 302791,
+      "estimated_cost_usd": 0.0657
     }
   }
 }

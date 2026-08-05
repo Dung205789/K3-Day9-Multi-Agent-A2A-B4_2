@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 
@@ -9,6 +10,7 @@ from openai import OpenAI
 
 from .config import (
     BASE_URL,
+    EXTRA_BODY,
     MAX_RETRIES,
     PRICE_IN_PER_M,
     PRICE_OUT_PER_M,
@@ -73,6 +75,46 @@ class LLMError(RuntimeError):
     pass
 
 
+_THINK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+_OBJECT = re.compile(r"\{.*\}", re.DOTALL)
+
+
+def extract_object(raw: str) -> dict:
+    """Coerce a model reply into a JSON object, or raise ValueError.
+
+    Open-weight models are looser than OpenAI about `response_format`. Qwen3 in
+    particular may wrap the answer in a <think> block, or return a JSON *string*
+    rather than an object - `json.loads` then hands back a `str` and every
+    caller downstream breaks on `.get`. Normalising here keeps that mess out of
+    the agents.
+    """
+    text = _THINK.sub("", raw or "").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        text = text.split("\n", 1)[-1] if "\n" in text else text
+        text = text.rsplit("```", 1)[0]
+
+    for candidate in (text, (_OBJECT.search(text) or [None]) and _OBJECT.search(text)):
+        if candidate is None:
+            continue
+        chunk = candidate if isinstance(candidate, str) else candidate.group(0)
+        try:
+            data = json.loads(chunk)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            return data
+        # A model that answered with a quoted JSON blob: unwrap once.
+        if isinstance(data, str):
+            try:
+                inner = json.loads(data)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(inner, dict):
+                return inner
+    raise ValueError(f"không lấy được JSON object từ: {text[:200]!r}")
+
+
 def chat_json(
     model: str,
     system: str,
@@ -102,9 +144,10 @@ def chat_json(
                 temperature=temperature,
                 max_tokens=max_tokens,
                 response_format={"type": "json_object"},
+                **({"extra_body": EXTRA_BODY} if EXTRA_BODY else {}),
             )
             raw = resp.choices[0].message.content or "{}"
-            data = json.loads(raw)
+            data = extract_object(raw)
             usage = resp.usage
             if usage:
                 USAGE.add(usage.prompt_tokens, usage.completion_tokens)
@@ -116,12 +159,15 @@ def chat_json(
                 "attempt": attempt,
             }
             return data, meta
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, ValueError) as exc:
             last_err = exc
             messages.append({"role": "assistant", "content": raw})
-            messages.append(
-                {"role": "user", "content": "Trả lời sai JSON. Trả lại đúng một JSON object hợp lệ."}
-            )
+            messages.append({
+                "role": "user",
+                "content": "Trả lời sai định dạng. Trả lại đúng MỘT JSON object "
+                           "hợp lệ, bắt đầu bằng { và kết thúc bằng }, không kèm "
+                           "giải thích, không dùng khối markdown.",
+            })
         except Exception as exc:  # network / rate limit / server error
             last_err = exc
             time.sleep(min(2 ** attempt * 0.5, 8))
