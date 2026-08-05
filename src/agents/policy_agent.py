@@ -82,12 +82,17 @@ class PolicyAgent:
         # Evidence IDs construction
         evidence_ids = []
         evidence_ids.append(f"order:{order_id}")
-        for i_id in item_ids[:3]:
+        for i_id in item_ids:
             evidence_ids.append(f"item:{i_id}")
-        for p_id in payment_ids[:3]:
+        for p_id in payment_ids:
             evidence_ids.append(f"payment:{p_id}")
-        for s_id in seller_ids[:2]:
-            evidence_ids.append(f"seller:{s_id}")
+        
+        # Include seller evidence ONLY when seller is responsible (late_delivery_seller)
+        if primary_issue == "late_delivery_seller":
+            target_sellers = delivery_info.get("late_sellers", []) or seller_ids
+            for s_id in target_sellers:
+                evidence_ids.append(f"seller:{s_id}")
+
         evidence_ids.append(f"policy:{root_cause}")
         evidence_ids = evidence_ids[:10]
 
