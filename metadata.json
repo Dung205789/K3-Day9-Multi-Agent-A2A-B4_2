@@ -1,7 +1,7 @@
 {
   "system": "K3 Day-9 Multi-Agent E-commerce Dispute Resolution",
   "version": "1.0.0",
-  "generated_at": "2026-08-05T03:45:52+00:00",
+  "generated_at": "2026-08-05T03:53:50+00:00",
   "policy_version": "EC_POLICY_V1",
   "framework": {
     "name": "custom A2A orchestration (no agent framework)",
@@ -86,32 +86,31 @@
   },
   "run_stats": {
     "cases_run": 50,
-    "wall_seconds": 110.0,
-    "avg_case_seconds": 2.2,
+    "wall_seconds": 86.4,
+    "avg_case_seconds": 1.73,
     "issue_distribution": {
-      "valid_split_payment": 9,
-      "canceled_order_paid": 8,
-      "late_delivery_seller": 8,
-      "unsupported_late_claim": 9,
       "unavailable_order_paid": 8,
+      "canceled_order_paid": 8,
+      "unsupported_late_claim": 9,
+      "late_delivery_seller": 8,
+      "valid_split_payment": 9,
       "late_delivery_logistics": 8
     },
     "total_recommended_refund_brl": 3429.64,
-    "policy_agreement_rate": 0.94,
+    "policy_agreement_rate": 0.96,
     "policy_disagreement_cases": [
       "EC_002",
-      "EC_042",
       "EC_047"
     ],
     "verifier_repairs": 0,
-    "llm_data_divergences": 78,
-    "llm_data_divergences_critical": 47,
+    "llm_data_divergences": 81,
+    "llm_data_divergences_critical": 51,
     "usage": {
       "calls": 350,
-      "prompt_tokens": 257072,
-      "completion_tokens": 44829,
-      "total_tokens": 301901,
-      "estimated_cost_usd": 0.0655
+      "prompt_tokens": 257561,
+      "completion_tokens": 44871,
+      "total_tokens": 302432,
+      "estimated_cost_usd": 0.0656
     }
   }
 }
