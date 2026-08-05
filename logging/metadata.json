@@ -1,0 +1,35 @@
+{
+  "model": {
+    "name": "gpt-4o-mini",
+    "provider": "OpenAI",
+    "parameter_size": "<=10B (small-tier OpenAI model, used within lab's parameter budget)",
+    "declared_in_source": "src/llm_client.py (MODEL_NAME constant)",
+    "used_by_agents": [
+      "order_seller_agent",
+      "delivery_agent",
+      "payment_agent",
+      "policy_agent"
+    ],
+    "not_llm_backed": [
+      "coordinator (pure orchestration)",
+      "verifier_agent (deterministic rule-engine cross-check, no LLM call)"
+    ]
+  },
+  "framework": {
+    "language": "Python 3.11",
+    "libraries": [
+      "openai>=1.40 (chat.completions.parse structured outputs)",
+      "pydantic>=2.7 (schema validation for every agent handoff + final output)",
+      "pandas>=2.2 (CSV loading/joins)",
+      "python-dotenv>=1.0 (.env loading)",
+      "tenacity>=8.3 (LLM call retries)"
+    ],
+    "orchestration_style": "custom sequential A2A pipeline (Coordinator calls each agent module directly; no third-party agent framework)"
+  },
+  "runtime": {
+    "os": "Windows 11",
+    "python_executable": ".venv (project-local virtualenv)",
+    "entrypoint": "src/main.py",
+    "execution_mode": "sequential, one case at a time, 5 agent steps per case"
+  }
+}

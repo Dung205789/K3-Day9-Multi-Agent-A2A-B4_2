@@ -1,0 +1,6 @@
+pandas>=2.2
+python-dotenv>=1.0
+openai>=1.40
+pydantic>=2.7
+jsonschema>=4.22
+tenacity>=8.3
