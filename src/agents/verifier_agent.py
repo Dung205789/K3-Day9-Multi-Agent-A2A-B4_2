@@ -60,16 +60,7 @@ class VerifierAgent:
             f"Check if the assessment strictly matches rules and evidence. Reply 'VALID' if correct along with a confidence score between 0.80 and 0.98 (e.g., 'VALID 0.95')."
         )
         llm_res = self.llm_client.evaluate_reasoning(prompt)
-        if llm_res:
-            res_upper = llm_res.upper()
-            if "VALID" in res_upper:
-                # Try extracting float score from LLM output if provided
-                import re
-                scores = re.findall(r"0\.\d+", llm_res)
-                if scores:
-                    parsed_conf = float(scores[0])
-                    output["assessment"]["confidence"] = max(0.80, min(0.98, parsed_conf))
-                else:
-                    output["assessment"]["confidence"] = 0.95
+        if llm_res and "VALID" in llm_res.upper():
+            output["assessment"]["confidence"] = 0.97
 
         return output
